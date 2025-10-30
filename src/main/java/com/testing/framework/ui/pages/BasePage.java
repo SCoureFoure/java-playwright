@@ -7,8 +7,6 @@ import io.qameta.allure.Allure;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.nio.file.Paths;
-
 /**
  * Base page class implementing Page Object Model pattern
  */
@@ -92,7 +90,7 @@ public abstract class BasePage {
      * Type text with delay for more realistic input
      */
     protected void typeSlowly(String selector, String text, int delayMs) {
-        page.type(selector, text, new Page.TypeOptions().setDelay(delayMs));
+        page.locator(selector).pressSequentially(text, new com.microsoft.playwright.Locator.PressSequentiallyOptions().setDelay(delayMs));
     }
     
     /**
