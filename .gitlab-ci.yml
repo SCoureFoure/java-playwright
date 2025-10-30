@@ -1,0 +1,198 @@
+variables:
+  MAVEN_OPTS: "-Dmaven.repo.local=$CI_PROJECT_DIR/.m2/repository"
+  MAVEN_CLI_OPTS: "--batch-mode --errors --fail-at-end --show-version"
+  ALLURE_VERSION: "2.29.0"
+
+image: maven:3.9-eclipse-temurin-17
+
+stages:
+  - build
+  - test
+  - report
+  - deploy
+
+cache:
+  paths:
+    - .m2/repository
+    - target/
+
+# Build stage
+build:
+  stage: build
+  script:
+    - mvn $MAVEN_CLI_OPTS clean compile
+  artifacts:
+    paths:
+      - target/
+    expire_in: 1 hour
+  tags:
+    - docker
+
+# Install Playwright browsers
+install_browsers:
+  stage: build
+  script:
+    - mvn exec:java -e -D exec.mainClass=com.microsoft.playwright.CLI -D exec.args="install --with-deps"
+  cache:
+    key: playwright-browsers
+    paths:
+      - ~/.cache/ms-playwright
+  tags:
+    - docker
+
+# API Tests
+api_tests:
+  stage: test
+  needs: ["build", "install_browsers"]
+  script:
+    - mvn $MAVEN_CLI_OPTS test -Dtest.suite=api -Denv=${TEST_ENV:-staging}
+  artifacts:
+    when: always
+    paths:
+      - target/surefire-reports/
+      - target/allure-results/
+    reports:
+      junit: target/surefire-reports/TEST-*.xml
+    expire_in: 1 week
+  tags:
+    - docker
+  only:
+    - merge_requests
+    - main
+    - develop
+
+# UI Tests
+ui_tests:
+  stage: test
+  needs: ["build", "install_browsers"]
+  script:
+    - mvn $MAVEN_CLI_OPTS test -Dtest.suite=ui -Denv=${TEST_ENV:-staging}
+  artifacts:
+    when: always
+    paths:
+      - target/surefire-reports/
+      - target/allure-results/
+      - target/playwright-screenshots/
+      - target/playwright-videos/
+    reports:
+      junit: target/surefire-reports/TEST-*.xml
+    expire_in: 1 week
+  tags:
+    - docker
+  only:
+    - merge_requests
+    - main
+    - develop
+
+# Smoke Tests (fast feedback)
+smoke_tests:
+  stage: test
+  needs: ["build", "install_browsers"]
+  script:
+    - mvn $MAVEN_CLI_OPTS test -Dtest.suite=smoke -Denv=${TEST_ENV:-staging}
+  artifacts:
+    when: always
+    paths:
+      - target/surefire-reports/
+      - target/allure-results/
+    reports:
+      junit: target/surefire-reports/TEST-*.xml
+    expire_in: 1 week
+  tags:
+    - docker
+  only:
+    - merge_requests
+    - main
+    - develop
+
+# Integration Tests (API + UI combined scenarios)
+integration_tests:
+  stage: test
+  needs: ["build", "install_browsers"]
+  script:
+    - mvn $MAVEN_CLI_OPTS test -Dtest.suite=integration -Denv=${TEST_ENV:-staging}
+  artifacts:
+    when: always
+    paths:
+      - target/surefire-reports/
+      - target/allure-results/
+    reports:
+      junit: target/surefire-reports/TEST-*.xml
+    expire_in: 1 week
+  tags:
+    - docker
+  only:
+    - main
+    - develop
+  when: manual
+
+# Generate Allure Report
+generate_report:
+  stage: report
+  needs: ["api_tests", "ui_tests", "smoke_tests"]
+  before_script:
+    - apt-get update && apt-get install -y wget
+    - wget https://github.com/allure-framework/allure2/releases/download/${ALLURE_VERSION}/allure-${ALLURE_VERSION}.tgz
+    - tar -zxvf allure-${ALLURE_VERSION}.tgz -C /opt/
+    - ln -s /opt/allure-${ALLURE_VERSION}/bin/allure /usr/bin/allure
+  script:
+    - mvn allure:report
+    - allure generate target/allure-results --clean -o target/allure-report
+  artifacts:
+    paths:
+      - target/allure-report/
+    expire_in: 1 month
+  tags:
+    - docker
+  only:
+    - merge_requests
+    - main
+    - develop
+
+# Publish Report to GitLab Pages
+pages:
+  stage: deploy
+  needs: ["generate_report"]
+  script:
+    - mkdir -p public
+    - cp -r target/allure-report/* public/
+  artifacts:
+    paths:
+      - public
+    expire_in: 1 month
+  tags:
+    - docker
+  only:
+    - main
+
+# Nightly Full Regression
+nightly_regression:
+  stage: test
+  script:
+    - mvn $MAVEN_CLI_OPTS clean test -Denv=staging -DthreadCount=4
+  artifacts:
+    when: always
+    paths:
+      - target/surefire-reports/
+      - target/allure-results/
+    expire_in: 2 weeks
+  tags:
+    - docker
+  only:
+    - schedules
+
+# Security & Dependency Check
+security_scan:
+  stage: build
+  script:
+    - mvn dependency-check:check
+  artifacts:
+    paths:
+      - target/dependency-check-report.html
+    expire_in: 1 week
+  allow_failure: true
+  tags:
+    - docker
+  only:
+    - main
+    - develop

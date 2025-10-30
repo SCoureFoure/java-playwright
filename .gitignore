@@ -1,0 +1,36 @@
+.DS_Store
+.idea/
+*.iml
+target/
+*.log
+.classpath
+.project
+.settings/
+*.class
+
+# Allure
+allure-results/
+allure-report/
+
+# Playwright
+playwright-screenshots/
+playwright-videos/
+trace.zip
+
+# Test outputs
+test-output/
+screenshots/
+videos/
+
+# IDE
+.vscode/
+*.swp
+*.swo
+*~
+
+# Maven
+dependency-reduced-pom.xml
+
+# Logs
+logs/
+*.log.*
