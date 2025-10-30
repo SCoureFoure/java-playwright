@@ -1,0 +1,50 @@
+# GitHub Copilot Configuration
+
+# Include patterns for better context
+include:
+  - "src/**/*.java"
+  - "src/**/*.properties"
+  - "src/**/*.xml"
+  - "docs/**/*.md"
+  - "pom.xml"
+
+# Exclude patterns
+exclude:
+  - "target/**"
+  - ".idea/**"
+  - "*.log"
+  - "allure-results/**"
+  - "allure-report/**"
+
+# Language-specific settings
+languages:
+  java:
+    # Prefer TestNG over JUnit
+    test_framework: "testng"
+    # Use RestAssured for API testing
+    api_framework: "rest-assured"
+    # Use Playwright for UI testing
+    ui_framework: "playwright"
+    # Target Java 17+
+    version: 17
+
+# Context hints
+context:
+  primary_frameworks:
+    - Spring Boot
+    - TestNG
+    - RestAssured
+    - Playwright
+    - Allure
+  
+  code_style:
+    - Use descriptive variable names
+    - Add JavaDoc to public methods
+    - Follow REST API conventions
+    - Use Page Object Model for UI tests
+    - Keep tests independent
+    
+  documentation:
+    - Add @Description annotations to tests
+    - Include usage examples in JavaDoc
+    - Document complex logic with inline comments
