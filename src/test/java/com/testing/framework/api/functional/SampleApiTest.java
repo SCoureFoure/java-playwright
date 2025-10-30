@@ -44,7 +44,16 @@ public class SampleApiTest extends BaseApiClient {
     @Severity(SeverityLevel.CRITICAL)
     @Description("Verify that we can retrieve a specific user by ID")
     public void testGetUserById() {
-        int userId = 1;
+        // First get all users to find a valid ID
+        Response usersResponse = given()
+            .spec(requestSpec)
+        .when()
+            .get("/users")
+        .then()
+            .statusCode(200)
+            .extract().response();
+        
+        int userId = usersResponse.jsonPath().getInt("[0].id");
         
         Response response = given()
             .spec(requestSpec)
@@ -91,7 +100,17 @@ public class SampleApiTest extends BaseApiClient {
     @Severity(SeverityLevel.NORMAL)
     @Description("Verify that we can update an existing user")
     public void testUpdateUser() {
-        int userId = 1;
+        // First get all users to find a valid ID
+        Response usersResponse = given()
+            .spec(requestSpec)
+        .when()
+            .get("/users")
+        .then()
+            .statusCode(200)
+            .extract().response();
+        
+        int userId = usersResponse.jsonPath().getInt("[0].id");
+        
         String requestBody = """
             {
                 "name": "Jane Doe Updated",
@@ -117,7 +136,25 @@ public class SampleApiTest extends BaseApiClient {
     @Severity(SeverityLevel.NORMAL)
     @Description("Verify that we can delete a user")
     public void testDeleteUser() {
-        int userId = 1;
+        // Create a user to delete
+        String newUser = """
+            {
+                "name": "User To Delete",
+                "email": "delete.me@example.com",
+                "role": "Temporary"
+            }
+            """;
+        
+        Response createResponse = given()
+            .spec(requestSpec)
+            .body(newUser)
+        .when()
+            .post("/users")
+        .then()
+            .statusCode(anyOf(is(200), is(201)))
+            .extract().response();
+        
+        int userId = createResponse.jsonPath().getInt("id");
         
         given()
             .spec(requestSpec)

@@ -48,17 +48,28 @@ public class DemoUserApiTest {
     
     @Test(priority = 3, description = "Get specific user by ID")
     public void testGetUserById() {
+        // First get all users to find a valid ID
+        Response usersResponse = given()
+            .when()
+            .get("/users")
+            .then()
+            .statusCode(200)
+            .extract()
+            .response();
+        
+        int userId = usersResponse.jsonPath().getInt("[0].id");
+        
         given()
-            .pathParam("id", 1)
+            .pathParam("id", userId)
             .when()
             .get("/users/{id}")
             .then()
             .statusCode(200)
-            .body("id", equalTo(1))
+            .body("id", equalTo(userId))
             .body("name", notNullValue())
             .body("email", notNullValue());
         
-        System.out.println("✅ Successfully retrieved user by ID");
+        System.out.println("✅ Successfully retrieved user by ID: " + userId);
     }
     
     @Test(priority = 4, description = "Create a new user")
@@ -91,6 +102,17 @@ public class DemoUserApiTest {
     
     @Test(priority = 5, description = "Update an existing user")
     public void testUpdateUser() {
+        // First get all users to find a valid ID
+        Response usersResponse = given()
+            .when()
+            .get("/users")
+            .then()
+            .statusCode(200)
+            .extract()
+            .response();
+        
+        int userId = usersResponse.jsonPath().getInt("[0].id");
+        
         String updatedUser = """
             {
                 "name": "Updated User",
@@ -100,7 +122,7 @@ public class DemoUserApiTest {
             """;
         
         given()
-            .pathParam("id", 1)
+            .pathParam("id", userId)
             .contentType(ContentType.JSON)
             .body(updatedUser)
             .when()
@@ -111,7 +133,7 @@ public class DemoUserApiTest {
             .body("email", equalTo("updated@example.com"))
             .body("role", equalTo("Senior Tester"));
         
-        System.out.println("✅ Successfully updated user");
+        System.out.println("✅ Successfully updated user ID: " + userId);
     }
     
     @Test(priority = 6, description = "Delete a user")

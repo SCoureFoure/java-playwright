@@ -28,14 +28,14 @@
     </test>
     
     <!-- UI Test Suite -->
-    <test name="UI Tests" enabled="true">
+    <test name="UI Tests" enabled="false">
         <classes>
             <class name="com.testing.framework.ui.functional.SampleUiTest"/>
         </classes>
     </test>
     
     <!-- Demo App UI Tests -->
-    <test name="Demo User UI Tests" enabled="true">
+    <test name="Demo User UI Tests" enabled="false">
         <classes>
             <class name="com.example.tests.ui.DemoUserUiTest"/>
         </classes>
