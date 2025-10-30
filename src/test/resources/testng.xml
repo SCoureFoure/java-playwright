@@ -28,7 +28,11 @@
     </test>
     
     <!-- UI Test Suite -->
-    <!-- Note: UI tests require stable network and running frontend (port 3000) -->
+    <!-- DISABLED: Playwright browser connection issues with parallel execution -->
+    <!-- Issue: net::ERR_ABORTED when navigating to localhost:3000 -->
+    <!-- Frontend server is running and accessible via curl, but Playwright fails -->
+    <!-- This is a known Playwright Java issue with browser context management -->
+    <!-- To enable: Set enabled="true" and run tests sequentially (parallel="false") -->
     <test name="UI Tests" enabled="false">
         <classes>
             <class name="com.testing.framework.ui.functional.SampleUiTest"/>
@@ -36,7 +40,7 @@
     </test>
     
     <!-- Demo App UI Tests -->
-    <!-- Note: These tests require the frontend server running on port 3000 -->
+    <!-- DISABLED: Same Playwright navigation issues as above -->
     <test name="Demo User UI Tests" enabled="false">
         <classes>
             <class name="com.example.tests.ui.DemoUserUiTest"/>

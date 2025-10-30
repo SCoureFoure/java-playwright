@@ -8,13 +8,14 @@ import org.testng.annotations.*;
 import static org.testng.Assert.*;
 
 /**
- * Sample UI test using Playwright
+ * Sample UI test using Playwright with local demo app
  */
 @Epic("UI Testing")
 @Feature("Web Navigation")
 public class SampleUiTest {
     
     private Page page;
+    private static final String BASE_URL = "http://localhost:3000";
     
     @BeforeClass
     public void setupBrowser() {
@@ -28,63 +29,63 @@ public class SampleUiTest {
     }
     
     @AfterMethod
-    public void takeScreenshotOnFailure() {
-        BrowserManager.takeScreenshot("test-screenshot");
+    public void takeScreenshotOnFailure(org.testng.ITestResult result) {
+        if (!result.isSuccess()) {
+            try {
+                BrowserManager.takeScreenshot("failed-" + result.getName());
+            } catch (Exception e) {
+                System.err.println("Could not take screenshot: " + e.getMessage());
+            }
+        }
     }
     
     @Test
     @Story("Homepage Navigation")
     @Severity(SeverityLevel.CRITICAL)
-    @Description("Verify that we can navigate to the homepage and see the title")
+    @Description("Verify that we can navigate to the demo homepage")
     public void testHomepageNavigation() {
-        // Example using Playwright.dev website
-        page.navigate("https://playwright.dev");
+        page.navigate(BASE_URL);
         page.waitForLoadState();
         
         String title = page.title();
-        assertTrue(title.contains("Playwright"), "Page title should contain 'Playwright'");
+        assertTrue(title.contains("User Management"), "Page title should contain 'User Management'");
         
         Allure.step("Homepage loaded successfully with title: " + title);
     }
     
     @Test
-    @Story("Search Functionality")
+    @Story("Page Elements")
     @Severity(SeverityLevel.CRITICAL)
-    @Description("Verify search functionality works correctly")
-    public void testSearchFunctionality() {
-        page.navigate("https://playwright.dev");
+    @Description("Verify that key page elements are visible")
+    public void testPageElements() {
+        page.navigate(BASE_URL);
+        page.waitForLoadState();
         
-        // Wait for search button and click
-        page.waitForSelector("button[aria-label='Search']");
-        page.click("button[aria-label='Search']");
+        // Check for user cards container
+        page.waitForSelector("#user-cards", new Page.WaitForSelectorOptions().setTimeout(5000));
+        assertTrue(page.isVisible("#user-cards"), "User cards container should be visible");
         
-        // Type in search
-        page.waitForSelector("input[type='search']");
-        page.fill("input[type='search']", "browser");
+        // Check for add user form
+        assertTrue(page.isVisible("#add-user-form"), "Add user form should be visible");
         
-        // Wait for results
-        page.waitForTimeout(1000);
-        
-        Allure.step("Search completed successfully");
+        Allure.step("All key page elements are visible");
     }
     
     @Test
-    @Story("Link Navigation")
+    @Story("User List Display")
     @Severity(SeverityLevel.NORMAL)
-    @Description("Verify that navigation links work correctly")
-    public void testLinkNavigation() {
-        page.navigate("https://playwright.dev");
+    @Description("Verify that user list is displayed")
+    public void testUserListDisplay() {
+        page.navigate(BASE_URL);
+        page.waitForLoadState();
         
-        // Click on "Get Started" or similar link
-        if (page.isVisible("text=Get started")) {
-            page.click("text=Get started");
-            page.waitForLoadState();
-            
-            String currentUrl = page.url();
-            assertTrue(currentUrl.contains("intro"), "URL should contain 'intro'");
-            
-            Allure.step("Navigation link works correctly");
-        }
+        // Wait for users to load
+        page.waitForSelector(".user-card", new Page.WaitForSelectorOptions().setTimeout(5000));
+        
+        int userCount = page.locator(".user-card").count();
+        assertTrue(userCount > 0, "Should display at least one user");
+        
+        Allure.step("User list displayed with " + userCount + " users");
     }
     
     @Test
@@ -94,14 +95,12 @@ public class SampleUiTest {
     public void testMobileViewport() {
         // Set mobile viewport
         page.setViewportSize(375, 667);
-        page.navigate("https://playwright.dev");
+        page.navigate(BASE_URL);
         page.waitForLoadState();
         
-        // Check if mobile menu exists
-        boolean hasMobileMenu = page.isVisible("button[aria-label='Toggle navigation bar']") ||
-                               page.isVisible(".navbar-sidebar__brand");
-        
-        assertTrue(hasMobileMenu, "Mobile menu should be visible");
+        // Check if main content is visible
+        assertTrue(page.isVisible("h1"), "Page header should be visible on mobile");
+        assertTrue(page.isVisible("#user-cards"), "User cards should be visible on mobile");
         
         Allure.step("Mobile viewport rendered correctly");
     }
@@ -113,7 +112,7 @@ public class SampleUiTest {
     public void testPageLoadPerformance() {
         long startTime = System.currentTimeMillis();
         
-        page.navigate("https://playwright.dev");
+        page.navigate(BASE_URL);
         page.waitForLoadState();
         
         long loadTime = System.currentTimeMillis() - startTime;

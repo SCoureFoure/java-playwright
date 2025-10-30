@@ -1,7 +1,8 @@
 package com.example.tests.ui;
 
 import com.microsoft.playwright.*;
-import com.testing.framework.core.config.ConfigManager;
+import com.microsoft.playwright.options.LoadState;
+import com.testing.framework.ui.utils.BrowserManager;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
@@ -9,28 +10,23 @@ import org.testng.annotations.Test;
 
 public class DemoUserUiTest {
     
-    private Browser browser;
-    private BrowserContext context;
     private Page page;
-    private String baseUrl;
+    private static final String BASE_URL = "http://localhost:3000";
     
     @BeforeClass
     public void setup() {
-        baseUrl = ConfigManager.getInstance().getProperty("ui.base.url");
-        Playwright playwright = Playwright.create();
-        browser = playwright.chromium().launch(new BrowserType.LaunchOptions().setHeadless(false));
-        context = browser.newContext();
-        page = context.newPage();
-        
-        System.out.println("Testing Demo UI at: " + baseUrl);
+        BrowserManager.initializeBrowser();
+        page = BrowserManager.getPage();
+        System.out.println("Testing Demo UI at: " + BASE_URL);
     }
     
     @Test(priority = 1, description = "Load demo application homepage")
     public void testLoadHomePage() {
-        page.navigate(baseUrl);
-        page.waitForLoadState();
+        page.navigate(BASE_URL);
+        page.waitForLoadState(LoadState.DOMCONTENTLOADED);
         
-        // Check for the main heading
+        // Wait for the main heading
+        page.waitForSelector("h1", new Page.WaitForSelectorOptions().setTimeout(5000));
         String heading = page.locator("h1").first().textContent();
         System.out.println("Page heading: " + heading);
         Assert.assertTrue(heading.contains("User Management"), "Page should have User Management heading");
@@ -40,8 +36,8 @@ public class DemoUserUiTest {
     
     @Test(priority = 2, description = "Verify users are displayed")
     public void testUsersDisplayed() {
-        page.navigate(baseUrl);
-        page.waitForLoadState();
+        page.navigate(BASE_URL);
+        page.waitForLoadState(LoadState.DOMCONTENTLOADED);
         
         // Wait for user list to load
         page.waitForSelector(".user-card", new Page.WaitForSelectorOptions().setTimeout(5000));
@@ -56,8 +52,11 @@ public class DemoUserUiTest {
     
     @Test(priority = 3, description = "Add a new user through UI")
     public void testAddNewUser() {
-        page.navigate(baseUrl);
-        page.waitForLoadState();
+        page.navigate(BASE_URL);
+        page.waitForLoadState(LoadState.DOMCONTENTLOADED);
+        
+        // Wait for form to be ready
+        page.waitForSelector("input[placeholder='Enter name']", new Page.WaitForSelectorOptions().setTimeout(5000));
         
         // Fill in the form
         page.fill("input[placeholder='Enter name']", "UI Test User");
@@ -67,20 +66,17 @@ public class DemoUserUiTest {
         // Submit the form
         page.click("button:has-text('Add User')");
         
-        // Wait a bit for the API call
-        page.waitForTimeout(1000);
-        
-        // Verify the new user appears in the list
-        page.waitForSelector(".user-card:has-text('UI Test User')");
+        // Wait for the new user to appear
+        page.waitForSelector(".user-card:has-text('UI Test User')", new Page.WaitForSelectorOptions().setTimeout(5000));
         
         System.out.println("✅ Successfully added new user through UI");
     }
     
     @Test(priority = 4, description = "Delete a user through UI")
     public void testDeleteUser() {
-        page.navigate(baseUrl);
-        page.waitForLoadState();
-        page.waitForSelector(".user-card");
+        page.navigate(BASE_URL);
+        page.waitForLoadState(LoadState.DOMCONTENTLOADED);
+        page.waitForSelector(".user-card", new Page.WaitForSelectorOptions().setTimeout(5000));
         
         // Get initial count
         int initialCount = page.locator(".user-card").count();
@@ -89,7 +85,7 @@ public class DemoUserUiTest {
         // Click the first delete button
         page.locator(".user-card .delete-btn").first().click();
         
-        // Wait for deletion
+        // Wait for deletion to complete
         page.waitForTimeout(1000);
         
         // Verify count decreased
@@ -102,8 +98,6 @@ public class DemoUserUiTest {
     
     @AfterClass
     public void tearDown() {
-        if (page != null) page.close();
-        if (context != null) context.close();
-        if (browser != null) browser.close();
+        BrowserManager.closeBrowser();
     }
 }
